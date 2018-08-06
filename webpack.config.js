@@ -3,15 +3,19 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const GasPlugin = require('gas-webpack-plugin');
 const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const WrapperPlugin = require('wrapper-webpack-plugin');
 
 const destination = 'dist';
 
 module.exports = {
   mode: 'production',
   context: __dirname,
-  entry: './src/index.js',
+  entry: {
+    code: './src/index.js',
+    bundle: './src/html/app.js'
+  },
   output: {
-    filename: 'code.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, destination),
     libraryTarget: 'this'
   },
@@ -39,36 +43,43 @@ module.exports = {
   },
   module: {
     rules: [{
-        enforce: 'pre',
-        test: /\.js$/,
-        exclude: /node_modules/,
-        loader: 'eslint-loader',
-        options: {
-          cache: true,
-          failOnError: false
-        }
-      },
-      {
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader'
-        }
+      enforce: 'pre',
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loader: 'eslint-loader',
+      options: {
+        cache: true,
+        failOnError: false
       }
+    },
+    {
+      test: /\.js$/,
+      exclude: /node_modules/,
+      use: {
+        loader: 'babel-loader'
+      }
+    }
     ]
   },
   plugins: [
     new CleanWebpackPlugin([destination]),
-    new CopyWebpackPlugin([{
-        from: './src/**/*.html',
-        flatten: true,
-        to: path.resolve(__dirname, destination)
-      },
+    new WrapperPlugin([{
+      test: /\.js$/, // only wrap output of bundle files with '.js' extension 
+      header: '//------------------------------------------\n',
+      footer: '\n'
+    }]),
+    new CopyWebpackPlugin([
       {
         from: './appsscript.json',
         to: path.resolve(__dirname, destination)
-      }
-    ]),
-    new GasPlugin()
+      },
+      {
+        from: './src/**/*.html',
+        flatten: true,
+        to: path.resolve(__dirname, destination)
+      }]),
+    new GasPlugin(),
+
+    // {from:path.resolve(__dirname, destination) + '/appsscript.json'}, to:]);
   ]
 };
